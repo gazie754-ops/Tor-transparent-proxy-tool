@@ -1,0 +1,20 @@
+
+---
+
+### Key design choices (why it is “sophisticated”)
+
+| Feature | Implementation |
+|---------|----------------|
+| **Kill‑switch** | `iptables` filter chain `RCI_TOR_FILTER` drops everything not explicitly allowed (Tor UID, loopback, established, redirected DNS). |
+| **IPv6 leak prevention** | Separate `ip6tables` chain drops all outbound IPv6 except loopback. |
+| **UDP leak prevention** | Only UDP port 53 is redirected to Tor’s DNSPort; all other UDP is dropped by the kill‑switch. |
+| **Tor‑UID exclusion** | NAT and filter chains `RETURN` for the Tor system user, preventing loops. |
+| **Safe rollback** | `trap ERR rollback` ensures that any failure during `start` restores iptables, torrc, and stops Tor. |
+| **Backup & restore** | Full `iptables-save` snapshots and `torrc` backup are taken before any change; `stop` restores them. |
+| **State & lock** | Prevents double‑start and tracks whether the mode is active. |
+| **Logging** | All actions are written to `/var/log/rci-tor.log`. |
+| **Conntrack flush** | On `stop`, existing cleartext flows are terminated via `conntrack -F` (if available). |
+| **Verification** | Uses `check.torproject.org/api/ip` through the Tor SOCKS port for an authoritative check. |
+| **Personalisation** | Author and organisation are embedded in the banner, version output, and README. |
+
+This gives you a production‑grade, auditable tool that fails safe and leaves the system in a known state.
